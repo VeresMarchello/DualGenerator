@@ -1,6 +1,6 @@
 ﻿namespace DualGenerator
 {
-    enum ObjectiveFunction
+    enum LinearFunction
     {
         Unknown = 0,
         Min,
