@@ -6,7 +6,7 @@
         GreaterThanOrEqual,
         LessThanOrEqual,
         Equal,
-        Arbitrary,
+        Unrestricted,
     }
 
     public static class OperationHelper
@@ -21,8 +21,8 @@
                     return "<=";
                 case Operation.Equal:
                     return "=";
-                case Operation.Arbitrary:
-                    return "tetszőleges";
+                case Operation.Unrestricted:
+                    return "előjel kötetlen";
                 case Operation.Unknown:
                 default:
                     throw new ArgumentException();

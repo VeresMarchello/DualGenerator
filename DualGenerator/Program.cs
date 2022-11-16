@@ -1,4 +1,6 @@
 ﻿using DualGenerator;
+using System;
+using System.ComponentModel;
 
 int variables = 0;
 int conditions = 0;
@@ -13,9 +15,11 @@ ObjectiveFunction objectiveFunction = ObjectiveFunction.Unknown;
 
 Console.WriteLine("Duál generáló\n");
 
-//ReadInput();
-GenerateInput();
+ReadInput();
+//GenerateInput();
+Console.WriteLine("\n\n");
 
+Console.WriteLine("PRIMÁL");
 ShowResult(Ax, bConditions, b, x, xConditions, objectiveFunction);
 Console.WriteLine("\n\n");
 
@@ -24,61 +28,153 @@ var newBConditions = GetNewBConditions(xConditions);
 var newXConditions = GetNewXConditions(bConditions);
 objectiveFunction = GetDualObjectiveFunction(objectiveFunction);
 
+Console.WriteLine("DUÁL");
 ShowResult(Bx, newBConditions, x, b, newXConditions, objectiveFunction);
-Console.ReadKey();
 
+
+Console.ReadKey();
 
 
 void ReadInput()
 {
     Console.Write("Adja meg a változók számát: ");
 
-    if (!int.TryParse(Console.ReadLine()?.Trim(), out variables) || variables < 0)
+    if (!int.TryParse(Console.ReadLine()?.Trim(), out variables) || variables < 1)
     {
-        Console.WriteLine("Hibás formátum!");
-        return;
+        throw new ArgumentException("Hibás formátum!");
     }
 
     Console.Write("Adja meg a feltételek számát: ");
 
-    if (!int.TryParse(Console.ReadLine()?.Trim(), out conditions) || conditions < 0)
+    if (!int.TryParse(Console.ReadLine()?.Trim(), out conditions) || conditions < 1)
     {
-        Console.WriteLine("Hibás formátum!");
-        return;
+        throw new ArgumentException("Hibás formátum!");
     }
 
     if (conditions < variables)
     {
-        Console.WriteLine("Nincs elég feltétel!");
-        return;
+        throw new ArgumentException("Nincs elég feltétel!");
     }
+
+    Console.WriteLine();
 
     for (int i = 0; i < conditions; i++)
     {
+        Console.WriteLine($"{i + 1}. feltétel");
         Ax.Add(new());
         for (int j = 0; j < variables; j++)
         {
             int xj;
-            Console.Write($"x{j}: ");
+            Console.Write($"x{j + 1}: ");
 
             if (!int.TryParse(Console.ReadLine()?.Trim(), out xj))
             {
-                Console.WriteLine("Hibás formátum!");
-                return;
+                throw new ArgumentException("Hibás formátum!");
             }
 
             Ax[i].Add(xj);
         }
 
-        Console.Write($"Condition: < ");
+        Console.WriteLine("Feltételek:");
+        Console.WriteLine("1. >=");
+        Console.WriteLine("2. <=");
+        Console.WriteLine("3. =");
+
+        Console.Write("Feltétel sorszáma: ");
+
+        int operationNumber;
+        if (!int.TryParse(Console.ReadLine()?.Trim(), out operationNumber))
+        {
+            throw new InvalidEnumArgumentException("Hibás formátum!");
+        }
+
+        Operation operation;
+
+        switch (operationNumber)
+        {
+            case 1:
+            case 2:
+            case 3:
+                operation = (Operation)operationNumber;
+                break;
+            default:
+                throw new InvalidEnumArgumentException("Hibás sorszám!");
+        }
+
+        Console.Write($"{OperationHelper.ToString(operation)} ");
+        bConditions.Add(operation);
+
         int bi;
         if (!int.TryParse(Console.ReadLine()?.Trim(), out bi))
         {
-            Console.WriteLine("Hibás formátum!");
-            return;
+            throw new ArgumentException("Hibás formátum!");
         }
 
         b.Add(bi);
+        Console.WriteLine();
+    }
+
+    Console.WriteLine("Célfüggvény");
+
+    for (int i = 0; i < variables; i++)
+    {
+        Console.Write($"x{i + 1}: ");
+
+        int xi;
+        if (!int.TryParse(Console.ReadLine()?.Trim(), out xi))
+        {
+            throw new ArgumentException("Hibás formátum!");
+        }
+
+        x.Add(xi);
+    }
+
+    Console.WriteLine("Célfüggvények:");
+    Console.WriteLine("1. MIN");
+    Console.WriteLine("2. MAX");
+
+    Console.Write("Célfüggvény sorszáma: ");
+
+    if (!Enum.TryParse(Console.ReadLine()?.Trim(), out objectiveFunction) || !Enum.IsDefined(typeof(ObjectiveFunction), objectiveFunction))
+    {
+        throw new InvalidEnumArgumentException("Hibás sorszám!");
+    }
+
+    Console.WriteLine();
+
+    Console.WriteLine("Változókra vonatkozó feltételek");
+
+    Console.WriteLine("Feltételek:");
+    Console.WriteLine("1. >= 0");
+    Console.WriteLine("2. <= 0");
+    Console.WriteLine("3. előjel kötetlen");
+
+    for (int i = 0; i < variables; i++)
+    {
+        Console.Write($"x{i + 1} feltételének sorszáma: ");
+
+        int operationNumber;
+        if (!int.TryParse(Console.ReadLine()?.Trim(), out operationNumber))
+        {
+            throw new ArgumentException("Hibás formátum!");
+        }
+
+        Operation operation;
+
+        switch (operationNumber)
+        {
+            case 1:
+            case 2:
+                operation = (Operation)operationNumber;
+                break;
+            case 3:
+                operation = Operation.Unrestricted;
+                break;
+            default:
+                throw new InvalidEnumArgumentException("Hibás sorszám!");
+        }
+
+        xConditions.Add(operation);
     }
 }
 void GenerateInput()
@@ -126,50 +222,49 @@ List<List<int>> Transpose(List<List<int>> matrix)
 
     return matrixT;
 }
-//TODO test
-List<Operation> GetNewBConditions(List<Operation> list)
-{
-    List<Operation> result = new();
 
-    if (list.Any(x => x == Operation.Unknown))
+List<Operation> GetNewBConditions(List<Operation> xConditions)
+{
+    if (xConditions.Any(x => x == Operation.Unknown || x == Operation.Equal))
     {
-        throw new ArgumentException();
+        throw new InvalidEnumArgumentException();
     }
 
-    foreach (var op in list)
+    List<Operation> result = new();
+
+    foreach (var op in xConditions)
     {
-        if (op == Operation.Equal)
-        {
-            result.Add(Operation.Arbitrary);
-        }
-        else if (op == Operation.Arbitrary)
+        if (op == Operation.Unrestricted)
         {
             result.Add(Operation.Equal);
         }
-
-        result.Add(op);
+        else if (op == Operation.GreaterThanOrEqual)
+        {
+            result.Add(Operation.LessThanOrEqual);
+        }
+        else
+        {
+            result.Add(Operation.GreaterThanOrEqual);
+        }
     }
 
     return result;
 }
-List<Operation> GetNewXConditions(List<Operation> list)
+List<Operation> GetNewXConditions(List<Operation> bConditions)
 {
-    List<Operation> result = new();
-
-    if (list.Any(x => x == Operation.Unknown))
+    if (bConditions.Any(x => x == Operation.Unknown || x == Operation.Unrestricted))
     {
-        throw new ArgumentException();
+        throw new InvalidEnumArgumentException();
     }
 
-    foreach (var op in list)
+    List<Operation> result = new();
+
+    foreach (var op in bConditions)
     {
         if (op == Operation.Equal)
         {
-            result.Add(Operation.Arbitrary);
-        }
-        else if (op == Operation.Arbitrary)
-        {
-            result.Add(Operation.Equal);
+            result.Add(Operation.Unrestricted);
+            continue;
         }
 
         result.Add(op);
@@ -198,7 +293,6 @@ ObjectiveFunction GetDualObjectiveFunction(ObjectiveFunction objectiveFunction)
     return newFunction;
 }
 
-
 void ShowResult(List<List<int>> Ax, List<Operation> bOperations, List<int> b, List<int> x, List<Operation> xConditions, ObjectiveFunction objectiveFunction)
 {
     for (int i = 0; i < Ax.Count; i++)
@@ -219,7 +313,6 @@ void ShowResult(List<List<int>> Ax, List<Operation> bOperations, List<int> b, Li
         Console.Write($" {operation} {b[i]}\n");
     }
 
-    Console.WriteLine();
     for (int i = 0; i < x.Count; i++)
     {
         string preseage = "";
@@ -234,8 +327,8 @@ void ShowResult(List<List<int>> Ax, List<Operation> bOperations, List<int> b, Li
 
     for (int i = 0; i < x.Count; i++)
     {
-        var arbitrary = xConditions[i] == Operation.Arbitrary;
+        var unrestricted = xConditions[i] == Operation.Unrestricted;
 
-        Console.Write($"x{i + 1} {OperationHelper.ToString(xConditions[i])}{(arbitrary ? "" : " 0")}, ");
+        Console.Write($"x{i + 1} {OperationHelper.ToString(xConditions[i])}{(unrestricted ? "" : " 0")}, ");
     }
 }
