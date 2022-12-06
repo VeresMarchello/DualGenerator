@@ -11,25 +11,28 @@ List<int> b = new();
 
 List<int> x = new();
 List<Operation> xConditions = new();
-ObjectiveFunction objectiveFunction = ObjectiveFunction.Unknown;
+LinearFunction linearFunction = LinearFunction.Unknown;
 
 Console.WriteLine("Duál generáló\n");
 
+#if DEBUG
 ReadInput();
-//GenerateInput();
 Console.WriteLine("\n\n");
+# else
+GenerateInput();
+# endif
 
 Console.WriteLine("PRIMÁL");
-ShowResult(Ax, bConditions, b, x, xConditions, objectiveFunction);
+ShowResult(Ax, bConditions, b, x, xConditions, linearFunction);
 Console.WriteLine("\n\n");
 
-var Bx = Transpose(Ax);
+var By = Transpose(Ax);
 var newBConditions = GetNewBConditions(xConditions);
 var newXConditions = GetNewXConditions(bConditions);
-objectiveFunction = GetDualObjectiveFunction(objectiveFunction);
+linearFunction = GetDualObjectiveFunction(linearFunction);
 
 Console.WriteLine("DUÁL");
-ShowResult(Bx, newBConditions, x, b, newXConditions, objectiveFunction);
+ShowResult(By, newBConditions, x, b, newXConditions, linearFunction);
 
 
 Console.ReadKey();
@@ -135,7 +138,7 @@ void ReadInput()
 
     Console.Write("Célfüggvény sorszáma: ");
 
-    if (!Enum.TryParse(Console.ReadLine()?.Trim(), out objectiveFunction) || !Enum.IsDefined(typeof(ObjectiveFunction), objectiveFunction))
+    if (!Enum.TryParse(Console.ReadLine()?.Trim(), out linearFunction) || !Enum.IsDefined(typeof(LinearFunction), linearFunction))
     {
         throw new InvalidEnumArgumentException("Hibás sorszám!");
     }
@@ -193,20 +196,22 @@ void GenerateInput()
         if (rand < 1d / 3d)
         {
             bConditions.Add(Operation.GreaterThanOrEqual);
+            xConditions.Add(Operation.GreaterThanOrEqual);
         }
         else if (rand < 2d / 3d)
         {
             bConditions.Add(Operation.LessThanOrEqual);
+            xConditions.Add(Operation.LessThanOrEqual);
         }
         else
         {
             bConditions.Add(Operation.Equal);
+            xConditions.Add(Operation.Unrestricted);
         }
 
         b.Add(random.Next(-10, 10));
         x.Add(random.Next(-10, 10));
-        xConditions.Add(Operation.GreaterThanOrEqual);
-        objectiveFunction = random.NextDouble() > 0.5 ? ObjectiveFunction.Max : ObjectiveFunction.Min;
+        linearFunction = random.NextDouble() > 0.5 ? LinearFunction.Max : LinearFunction.Min;
     }
 }
 
@@ -273,27 +278,27 @@ List<Operation> GetNewXConditions(List<Operation> bConditions)
     return result;
 }
 
-ObjectiveFunction GetDualObjectiveFunction(ObjectiveFunction objectiveFunction)
+LinearFunction GetDualObjectiveFunction(LinearFunction objectiveFunction)
 {
-    ObjectiveFunction newFunction;
+    LinearFunction newFunction;
 
     switch (objectiveFunction)
     {
-        case ObjectiveFunction.Max:
-            newFunction = ObjectiveFunction.Min;
+        case LinearFunction.Max:
+            newFunction = LinearFunction.Min;
             break;
-        case ObjectiveFunction.Min:
-            newFunction = ObjectiveFunction.Max;
+        case LinearFunction.Min:
+            newFunction = LinearFunction.Max;
             break;
         default:
-            newFunction = ObjectiveFunction.Unknown;
+            newFunction = LinearFunction.Unknown;
             break;
     }
 
     return newFunction;
 }
 
-void ShowResult(List<List<int>> Ax, List<Operation> bOperations, List<int> b, List<int> x, List<Operation> xConditions, ObjectiveFunction objectiveFunction)
+void ShowResult(List<List<int>> Ax, List<Operation> bOperations, List<int> b, List<int> x, List<Operation> xConditions, LinearFunction objectiveFunction)
 {
     for (int i = 0; i < Ax.Count; i++)
     {
@@ -305,7 +310,7 @@ void ShowResult(List<List<int>> Ax, List<Operation> bOperations, List<int> b, Li
             {
                 preseage = Ax[i][j] >= 0 ? $"+{space}" : $"-{space}";
             }
-            Console.Write($"{preseage}{Math.Abs(Ax[i][j])} * x{j + 1} ");
+            Console.Write($"{preseage}{Math.Abs(Ax[i][j])}x{j + 1} ");
         }
 
         var operation = OperationHelper.ToString(bOperations[i]);
@@ -321,7 +326,7 @@ void ShowResult(List<List<int>> Ax, List<Operation> bOperations, List<int> b, Li
         {
             preseage = x[i] >= 0 ? $"+{space}" : $"-{space}";
         }
-        Console.Write($"{preseage}{Math.Abs(x[i])} * x{i + 1} ");
+        Console.Write($"{preseage}{Math.Abs(x[i])}x{i + 1} ");
     }
     Console.Write($"-> {objectiveFunction}\n");
 
